@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRAGON-WIN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: linear-gradient(135deg, #141414 0%, #0d0d0d 100%);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #e5c5c5;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 18px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .crash-btn, .slots-btn, .roulette-btn {
+            background: #e5c5c5;
+            color: #000000;
+        }
+
+        .crash-btn:hover, .slots-btn:hover, .roulette-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 197, 197, 0.5);
+            background: #f0d0d0;
+        }
+
+        .telegram-btn {
+            background: #0088cc;
+            color: white;
+        }
+
+        .telegram-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 136, 204, 0.4);
+            background: #0099dd;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #141414 0%, #0d0d0d 100%);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            animation: slideIn 0.3s ease;
+            border: 2px solid #e5c5c5;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content img {
+            width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        .prediction {
+            font-size: 48px;
+            font-weight: bold;
+            color: #e5c5c5;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e5c5c5;
+            margin: 20px 0;
+        }
+
+        .close-btn {
+            background: #e5c5c5;
+            color: #000000;
+            padding: 12px 40px;
+            font-size: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .close-btn:hover {
+            background: #f0d0d0;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid #e5c5c5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #e5c5c5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DRAGON-WIN</h1>
+        <div class="button-group">
+            <button class="crash-btn" onclick="showCrashPrediction()">CRASH</button>
+            <button class="slots-btn" onclick="showSlotsPrediction()">SLOTS</button>
+            <button class="roulette-btn" onclick="showRoulettePrediction()">RUSSIAN ROULETTE</button>
+            <button class="telegram-btn" onclick="openTelegram()">📱 Telegram канал</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let checkInterval = null;
+
+        function showModal(content) {
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+        }
+
+        function openTelegram() {
+            window.open('https://t.me/DragonWon', '_blank');
+        }
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        function generateCrashPrediction() {
+            const predictions = [1.5, 1.8, 2.0, 2.5, 3.0, 1.2, 1.7, 2.2, 1.4, 1.6];
+            return predictions[Math.floor(Math.random() * predictions.length)].toFixed(2);
+        }
+
+        async function showCrashPrediction() {
+            showModal('<div class="loading"></div><p class="loading-text">Анализ данных...</p>');
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const prediction = generateCrashPrediction();
+
+            const content = `
+                <img src="https://i.postimg.cc/zBvx2T0W/ezgif-78c292e779aaf7ba.gif" alt="Crash">
+                <div class="prediction">${prediction}x</div>
+                <p style="color: #999; margin-top: 10px;"></p>
+                <button class="close-btn" onclick="closeModal()">Закрыть</button>
+            `;
+
+            showModal(content);
+
+            checkInterval = setInterval(async () => {
+                const newPrediction = generateCrashPrediction();
+                const predictionElement = document.querySelector('.prediction');
+                if (predictionElement) {
+                    predictionElement.textContent = newPrediction + 'x';
+                }
+            }, 20000);
+        }
+
+        function showSlotsPrediction() {
+            showModal('<div class="loading"></div><p class="loading-text">Анализ...</p>');
+
+            setTimeout(() => {
+                const outcomes = [
+                    { text: '3 Совпадет', color: '#43e97b', emoji: '🎰🎰🎰' },
+                    { text: '2 Совпадет', color: '#4facfe', emoji: '🎰🎰' },
+                    { text: 'Ни один не совпадет', color: '#f5576c', emoji: '❌' }
+                ];
+
+                const result = outcomes[Math.floor(Math.random() * outcomes.length)];
+
+                const content = `
+                    <div style="font-size: 64px; margin: 20px 0;">${result.emoji}</div>
+                    <div class="result-text" style="color: ${result.color};">${result.text}</div>
+                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
+                `;
+
+                showModal(content);
+            }, 1000);
+        }
+
+        function showRoulettePrediction() {
+            showModal('<div class="loading"></div><p class="loading-text">Анализ...</p>');
+
+            setTimeout(() => {
+                const bullets = Math.floor(Math.random() * 3) + 1;
+
+                const bulletEmojis = {
+                    1: '🔫',
+                    2: '🔫🔫',
+                    3: '🔫🔫🔫'
+                };
+
+                const content = `
+                    <div style="font-size: 64px; margin: 20px 0;">${bulletEmojis[bullets]}</div>
+                    <div class="result-text">Играть на ${bullets} ${bullets === 1 ? 'пулю' : 'пули'}</div>
+                    <p style="color: #999; margin-top: 10px;">Рекомендация</p>
+                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
+                `;
+
+                showModal(content);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
