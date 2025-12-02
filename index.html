@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DRAGON-WIN</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -59,12 +60,17 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .crash-btn, .slots-btn, .roulette-btn {
             background: #e5c5c5;
             color: #000000;
         }
 
-        .crash-btn:hover, .slots-btn:hover, .roulette-btn:hover {
+        .crash-btn:hover:not(:disabled), .slots-btn:hover:not(:disabled), .roulette-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(229, 197, 197, 0.5);
             background: #f0d0d0;
@@ -103,6 +109,59 @@
             background: #32b350;
         }
 
+        .promo-section {
+            background: rgba(229, 197, 197, 0.1);
+            border: 2px solid #e5c5c5;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .promo-label {
+            color: #e5c5c5;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .promo-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 2px solid #e5c5c5;
+            background: #1a1a1a;
+            color: white;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        .promo-input:focus {
+            border-color: #f0d0d0;
+        }
+
+        .promo-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            background: #e5c5c5;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .promo-btn:hover:not(:disabled) {
+            background: #f0d0d0;
+        }
+
+        .promo-status {
+            color: #43e97b;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -114,6 +173,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            overflow-y: auto;
         }
 
         .modal-content {
@@ -126,6 +186,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
             animation: slideIn 0.3s ease;
             border: 2px solid #e5c5c5;
+            margin: 20px;
         }
 
         @keyframes slideIn {
@@ -170,8 +231,22 @@
             margin-top: 20px;
         }
 
-        .close-btn:hover {
+        .close-btn:hover:not(:disabled) {
             background: #f0d0d0;
+        }
+
+        .get-more-btn {
+            background: #0088cc;
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .get-more-btn:hover {
+            background: #0099dd;
+            transform: translateY(-2px);
         }
 
         .loading {
@@ -192,6 +267,29 @@
 
         .loading-text {
             color: #e5c5c5;
+        }
+
+        .limit-text {
+            color: #f5576c;
+            font-size: 14px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .game-button-container {
+            position: relative;
+        }
+
+        .limit-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f5576c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         .nickname-modal {
@@ -281,9 +379,18 @@
     <div class="container" id="mainContainer" style="display: none;">
         <h1>DRAGONWIN</h1>
         <div class="button-group">
-            <button class="crash-btn" onclick="showCrashPrediction()">CRASH</button>
-            <button class="slots-btn" onclick="showSlotsPrediction()">SLOTS</button>
-            <button class="roulette-btn" onclick="showRoulettePrediction()">RUSSIAN ROULETTE</button>
+            <div class="game-button-container">
+                <button class="crash-btn" onclick="openPredictionModal('crash')">CRASH</button>
+                <div class="limit-badge" id="crashBadge">10/10</div>
+            </div>
+            <div class="game-button-container">
+                <button class="slots-btn" onclick="openPredictionModal('slots')">SLOTS</button>
+                <div class="limit-badge" id="slotsBadge">5/5</div>
+            </div>
+            <div class="game-button-container">
+                <button class="roulette-btn" onclick="openPredictionModal('roulette')">RUSSIAN ROULETTE</button>
+                <div class="limit-badge" id="rouletteBadge">5/5</div>
+            </div>
         </div>
 
         <div class="divider"></div>
@@ -291,6 +398,13 @@
         <div class="button-group">
             <button class="telegram-btn" onclick="openTelegram()">📱 Telegram канал</button>
             <button class="support-btn" onclick="openSupport()">🛠️ Тех. Поддержка</button>
+        </div>
+
+        <div class="promo-section">
+            <div class="promo-label">Промокод (безлимитный доступ)</div>
+            <input type="text" id="promoInput" class="promo-input" placeholder="Введите промокод" maxlength="50">
+            <button id="promoBtn" class="promo-btn" onclick="applyPromo()">Активировать</button>
+            <div class="promo-status" id="promoStatus"></div>
         </div>
     </div>
 
@@ -301,18 +415,55 @@
     </div>
 
     <script>
+        const SUPABASE_URL = 'https://tmyoqpicbrswhamycfoi.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteW9xcGljYnJzd2hhbXljZm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2NTgyNzAsImV4cCI6MjA4MDIzNDI3MH0.nXlOfoXqH7aSWv0AQLtn6PBU1Rse44XISzA9KbBiKg4';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const LIMITS = {
+            crash: 10,
+            slots: 5,
+            roulette: 5
+        };
+
+        let currentUser = null;
         let checkInterval = null;
 
-        function checkNickname() {
+        async function initializeUser() {
             const savedNickname = localStorage.getItem('telegram_nickname');
-            if (savedNickname) {
-                document.getElementById('mainContainer').style.display = 'block';
-            } else {
+
+            if (!savedNickname) {
                 document.getElementById('nicknameModal').style.display = 'flex';
+                return;
+            }
+
+            try {
+                const { data: existingUser } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('nickname', savedNickname)
+                    .maybeSingle();
+
+                if (!existingUser) {
+                    const { data: newUser } = await supabase
+                        .from('users')
+                        .insert([{ nickname: savedNickname }])
+                        .select()
+                        .maybeSingle();
+                    currentUser = newUser;
+                } else {
+                    currentUser = existingUser;
+                }
+
+                document.getElementById('mainContainer').style.display = 'block';
+                updateLimitBadges();
+                updatePromoStatus();
+            } catch (error) {
+                console.error('Error initializing user:', error);
             }
         }
 
-        document.getElementById('nicknameSubmit').addEventListener('click', function() {
+        document.getElementById('nicknameSubmit').addEventListener('click', async function() {
             const nicknameInput = document.getElementById('nicknameInput');
             const nickname = nicknameInput.value.trim();
 
@@ -326,10 +477,38 @@
                 return;
             }
 
-            localStorage.setItem('telegram_nickname', nickname);
+            this.disabled = true;
 
-            document.getElementById('nicknameModal').style.display = 'none';
-            document.getElementById('mainContainer').style.display = 'block';
+            try {
+                const { data: existingUser } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('nickname', nickname)
+                    .maybeSingle();
+
+                if (existingUser) {
+                    alert('Этот никнейм уже зарегистрирован');
+                    this.disabled = false;
+                    return;
+                }
+
+                const { data: newUser } = await supabase
+                    .from('users')
+                    .insert([{ nickname }])
+                    .select()
+                    .maybeSingle();
+
+                currentUser = newUser;
+                localStorage.setItem('telegram_nickname', nickname);
+
+                document.getElementById('nicknameModal').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'block';
+                updateLimitBadges();
+            } catch (error) {
+                console.error('Error registering user:', error);
+                alert('Ошибка при регистрации');
+                this.disabled = false;
+            }
         });
 
         document.getElementById('nicknameInput').addEventListener('keypress', function(e) {
@@ -338,7 +517,203 @@
             }
         });
 
-        window.addEventListener('load', checkNickname);
+        async function updateLimitBadges() {
+            if (!currentUser) return;
+
+            for (const gameType of Object.keys(LIMITS)) {
+                const limit = LIMITS[gameType];
+                const { data: prediction } = await supabase
+                    .from('predictions')
+                    .select('used_today, reset_date')
+                    .eq('user_id', currentUser.id)
+                    .eq('game_type', gameType)
+                    .eq('reset_date', new Date().toISOString().split('T')[0])
+                    .maybeSingle();
+
+                const usedToday = prediction ? prediction.used_today : 0;
+                const remaining = limit - usedToday;
+                document.getElementById(`${gameType}Badge`).textContent = `${remaining}/${limit}`;
+
+                if (remaining <= 0) {
+                    document.querySelector(`.${gameType}-btn`).disabled = true;
+                }
+            }
+        }
+
+        async function canUsePrediction(gameType) {
+            if (!currentUser) return false;
+
+            if (currentUser.has_promo) return true;
+
+            const limit = LIMITS[gameType];
+            const today = new Date().toISOString().split('T')[0];
+
+            const { data: prediction } = await supabase
+                .from('predictions')
+                .select('used_today, reset_date')
+                .eq('user_id', currentUser.id)
+                .eq('game_type', gameType)
+                .eq('reset_date', today)
+                .maybeSingle();
+
+            if (!prediction) {
+                await supabase
+                    .from('predictions')
+                    .insert([{
+                        user_id: currentUser.id,
+                        game_type: gameType,
+                        used_today: 0,
+                        reset_date: today
+                    }]);
+                return true;
+            }
+
+            return prediction.used_today < limit;
+        }
+
+        async function incrementPrediction(gameType) {
+            if (!currentUser) return;
+
+            const today = new Date().toISOString().split('T')[0];
+
+            const { data: prediction } = await supabase
+                .from('predictions')
+                .select('id, used_today')
+                .eq('user_id', currentUser.id)
+                .eq('game_type', gameType)
+                .eq('reset_date', today)
+                .maybeSingle();
+
+            if (prediction) {
+                await supabase
+                    .from('predictions')
+                    .update({ used_today: prediction.used_today + 1 })
+                    .eq('id', prediction.id);
+            }
+
+            await updateLimitBadges();
+        }
+
+        async function openPredictionModal(gameType) {
+            const canUse = await canUsePrediction(gameType);
+
+            if (!canUse) {
+                const limit = LIMITS[gameType];
+                showModal(`
+                    <h2 style="color: #e5c5c5; margin-bottom: 20px;">Лимит исчерпан</h2>
+                    <p style="color: #999; margin-bottom: 20px;">Вы использовали все ${limit} попыток на сегодня</p>
+                    <button class="get-more-btn" onclick="window.open('https://t.me/suphiex', '_blank')">Получить еще</button>
+                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
+                `);
+                return;
+            }
+
+            showModal(`
+                <button class="close-btn" style="margin-top: 0; float: right; padding: 8px 15px; font-size: 14px;" onclick="closeModal()">✕</button>
+                <div style="clear: both;"></div>
+                <h2 style="color: #e5c5c5; margin-bottom: 20px;">Узнать результат</h2>
+                <button class="crash-btn" style="width: 100%; margin-bottom: 20px;" onclick="showPrediction('${gameType}')">Узнать ИКС</button>
+                <p style="color: #999; font-size: 14px;">Нажмите кнопку чтобы узнать результат</p>
+            `);
+        }
+
+        async function showPrediction(gameType) {
+            closeModal();
+            await incrementPrediction(gameType);
+
+            showModal('<div class="loading"></div><p class="loading-text">Анализ данных...</p>');
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (gameType === 'crash') {
+                const prediction = generateCrashPrediction();
+                const content = `
+                    <img src="https://i.postimg.cc/zBvx2T0W/ezgif-78c292e779aaf7ba.gif" alt="Crash">
+                    <div class="prediction">${prediction}x</div>
+                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
+                `;
+                showModal(content);
+            } else if (gameType === 'slots') {
+                const outcomes = [
+                    { text: '3 Совпадет', color: '#43e97b', emoji: '🎰🎰🎰' },
+                    { text: '2 Совпадет', color: '#4facfe', emoji: '🎰🎰' },
+                    { text: 'Ни один не совпадет', color: '#f5576c', emoji: '❌' }
+                ];
+                const result = outcomes[Math.floor(Math.random() * outcomes.length)];
+                const content = `
+                    <div style="font-size: 64px; margin: 20px 0;">${result.emoji}</div>
+                    <div class="result-text" style="color: ${result.color};">${result.text}</div>
+                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
+                `;
+                showModal(content);
+            } else if (gameType === 'roulette') {
+                const bullets = Math.floor(Math.random() * 3) + 1;
+                const bulletEmojis = { 1: '🔫', 2: '🔫🔫', 3: '🔫🔫🔫' };
+                const content = `
+                    <div style="font-size: 64px; margin: 20px 0;">${bulletEmojis[bullets]}</div>
+                    <div class="result-text">Играть на ${bullets} ${bullets === 1 ? 'пулю' : 'пули'}</div>
+                    <p style="color: #999; margin-top: 10px;">Рекомендация</p>
+                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
+                `;
+                showModal(content);
+            }
+        }
+
+        async function applyPromo() {
+            const promoInput = document.getElementById('promoInput');
+            const promo = promoInput.value.trim().toUpperCase();
+
+            if (!promo) {
+                alert('Введите промокод');
+                return;
+            }
+
+            if (promo !== 'TONFULL') {
+                document.getElementById('promoStatus').textContent = 'Неверный промокод';
+                document.getElementById('promoStatus').style.color = '#f5576c';
+                return;
+            }
+
+            if (currentUser.has_promo) {
+                document.getElementById('promoStatus').textContent = 'Промокод уже активирован';
+                document.getElementById('promoStatus').style.color = '#f5576c';
+                return;
+            }
+
+            try {
+                await supabase
+                    .from('users')
+                    .update({ has_promo: true })
+                    .eq('id', currentUser.id);
+
+                currentUser.has_promo = true;
+                promoInput.value = '';
+                document.getElementById('promoStatus').textContent = '✓ Промокод успешно активирован! Безлимитный доступ включен';
+                document.getElementById('promoStatus').style.color = '#43e97b';
+
+                for (const gameType of Object.keys(LIMITS)) {
+                    document.querySelector(`.${gameType}-btn`).disabled = false;
+                }
+                await updateLimitBadges();
+            } catch (error) {
+                console.error('Error applying promo:', error);
+                alert('Ошибка при активации промокода');
+            }
+        }
+
+        async function updatePromoStatus() {
+            if (currentUser && currentUser.has_promo) {
+                document.getElementById('promoStatus').textContent = '✓ Безлимитный доступ активирован';
+                document.getElementById('promoStatus').style.color = '#43e97b';
+                document.getElementById('promoInput').disabled = true;
+                document.getElementById('promoBtn').disabled = true;
+            }
+        }
+
+        function generateCrashPrediction() {
+            const predictions = [1.5, 1.8, 2.0, 2.5, 3.0, 1.2, 1.7, 2.2, 1.4, 1.6];
+            return predictions[Math.floor(Math.random() * predictions.length)].toFixed(2);
+        }
 
         function showModal(content) {
             document.getElementById('modalContent').innerHTML = content;
@@ -367,80 +742,7 @@
             }
         });
 
-        function generateCrashPrediction() {
-            const predictions = [1.5, 1.8, 2.0, 2.5, 3.0, 1.2, 1.7, 2.2, 1.4, 1.6];
-            return predictions[Math.floor(Math.random() * predictions.length)].toFixed(2);
-        }
-
-        async function showCrashPrediction() {
-            showModal('<div class="loading"></div><p class="loading-text">Анализ данных...</p>');
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const prediction = generateCrashPrediction();
-
-            const content = `
-                <img src="https://i.postimg.cc/zBvx2T0W/ezgif-78c292e779aaf7ba.gif" alt="Crash">
-                <div class="prediction">${prediction}x</div>
-                <p style="color: #999; margin-top: 10px;"></p>
-                <button class="close-btn" onclick="closeModal()">Закрыть</button>
-            `;
-
-            showModal(content);
-
-            checkInterval = setInterval(async () => {
-                const newPrediction = generateCrashPrediction();
-                const predictionElement = document.querySelector('.prediction');
-                if (predictionElement) {
-                    predictionElement.textContent = newPrediction + 'x';
-                }
-            }, 20000);
-        }
-
-        function showSlotsPrediction() {
-            showModal('<div class="loading"></div><p class="loading-text">Анализ...</p>');
-
-            setTimeout(() => {
-                const outcomes = [
-                    { text: '3 Совпадет', color: '#43e97b', emoji: '🎰🎰🎰' },
-                    { text: '2 Совпадет', color: '#4facfe', emoji: '🎰🎰' },
-                    { text: 'Ни один не совпадет', color: '#f5576c', emoji: '❌' }
-                ];
-
-                const result = outcomes[Math.floor(Math.random() * outcomes.length)];
-
-                const content = `
-                    <div style="font-size: 64px; margin: 20px 0;">${result.emoji}</div>
-                    <div class="result-text" style="color: ${result.color};">${result.text}</div>
-                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
-                `;
-
-                showModal(content);
-            }, 1000);
-        }
-
-        function showRoulettePrediction() {
-            showModal('<div class="loading"></div><p class="loading-text">Анализ...</p>');
-
-            setTimeout(() => {
-                const bullets = Math.floor(Math.random() * 3) + 1;
-
-                const bulletEmojis = {
-                    1: '🔫',
-                    2: '🔫🔫',
-                    3: '🔫🔫🔫'
-                };
-
-                const content = `
-                    <div style="font-size: 64px; margin: 20px 0;">${bulletEmojis[bullets]}</div>
-                    <div class="result-text">Играть на ${bullets} ${bullets === 1 ? 'пулю' : 'пули'}</div>
-                    <p style="color: #999; margin-top: 10px;">Рекомендация</p>
-                    <button class="close-btn" onclick="closeModal()">Закрыть</button>
-                `;
-
-                showModal(content);
-            }, 1000);
-        }
+        window.addEventListener('load', initializeUser);
     </script>
 </body>
 </html>
